@@ -94,6 +94,19 @@
             padding: 10px;
             background-color: #fff;
             position: relative;
+            cursor: move; /* ドラッグ可能であることを示す */
+        }
+        
+        .image-item.dragging {
+            opacity: 0.5;
+        }
+        
+        .image-item.dragover-top {
+            border-top: 3px solid dodgerblue;
+        }
+        
+        .image-item.dragover-bottom {
+            border-bottom: 3px solid dodgerblue;
         }
 
         .image-item img {
@@ -222,12 +235,64 @@
         globalBorderWidth.addEventListener('change', applyGlobalStyles);
         globalBorderColor.addEventListener('change', applyGlobalStyles);
 
+        let draggedItem = null;
+
+        function handleDragStart(e) {
+            draggedItem = this;
+            setTimeout(() => {
+                this.classList.add('dragging');
+            }, 0);
+        }
+
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            draggedItem = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const boundingBox = this.getBoundingClientRect();
+            const offset = boundingBox.y + (boundingBox.height / 2);
+            if (e.clientY < offset) {
+                this.classList.add('dragover-top');
+                this.classList.remove('dragover-bottom');
+            } else {
+                this.classList.add('dragover-bottom');
+                this.classList.remove('dragover-top');
+            }
+        }
+        
+        function handleDragLeave() {
+            this.classList.remove('dragover-top', 'dragover-bottom');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            if (this !== draggedItem) {
+                const dropPosition = this.classList.contains('dragover-top') ? 'beforebegin' : 'afterend';
+                this.insertAdjacentElement(dropPosition, draggedItem);
+            }
+            this.classList.remove('dragover-top', 'dragover-bottom');
+        }
+
+        function addDragDropListeners(item) {
+            item.setAttribute('draggable', 'true');
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('dragleave', handleDragLeave);
+            item.addEventListener('drop', handleDrop);
+        }
+
         function createImageItem(file) {
             const reader = new FileReader();
 
             reader.onload = (e) => {
                 const imageItem = document.createElement('div');
                 imageItem.className = 'image-item';
+                
+                // ドラッグ＆ドロップのイベントリスナーを追加
+                addDragDropListeners(imageItem);
 
                 const img = document.createElement('img');
                 img.src = e.target.result;
