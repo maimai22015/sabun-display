@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像選択とスタイル設定</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: #fff;
+            margin-bottom: 20px;
+        }
+
+        #drop-zone.dragover {
+            background-color: #e0e0e0;
+            border-color: #555;
+            color: #555;
+        }
+        
+        #global-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e9e9f4;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: bold;
+            color: #444;
+        }
+        
+        #global-controls select,
+        #global-controls input[type="number"],
+        #global-controls input[type="color"] {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #global-controls input[type="number"] {
+            width: 50px;
+        }
+        
+        #global-controls input[type="color"] {
+            width: 50px;
+            height: 30px;
+            padding: 0;
+            border: none;
+        }
+
+        #image-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .image-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #fff;
+            position: relative;
+        }
+
+        .image-item img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .caption-display {
+            width: 150px;
+            padding: 5px;
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            word-break: break-all;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hidden-input {
+            width: 140px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>画像をドラッグ＆ドロップまたは選択</h1>
+
+    <div id="drop-zone">
+        <p>ここに画像をドラッグ＆ドロップするか、下のボタンで選択してください。</p>
+        <input type="file" id="image-selector" multiple accept="image/*" style="display: none;">
+    </div>
+
+    <div id="global-controls">
+        <div class="control-group">
+            <label for="page-bg-color">ページ背景色:</label>
+            <input type="color" id="page-bg-color" value="#f4f4f9">
+        </div>
+        <div class="control-group">
+            <label for="img-bg-color">透過画像背景色:</label>
+            <input type="color" id="img-bg-color" value="#ffffff">
+        </div>
+        <div class="control-group">
+            <label for="item-bg-color">項目背景色:</label>
+            <input type="color" id="item-bg-color" value="#ffffff">
+        </div>
+        <div class="control-group">
+            <label for="caption-color">キャプション色:</label>
+            <input type="color" id="caption-color" value="#000000">
+        </div>
+        <div class="control-group">
+            <label for="global-border-style">ボーダースタイル:</label>
+            <select id="global-border-style">
+                <option value="none">None</option>
+                <option value="solid" selected>Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+                <option value="double">Double</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="global-border-width">ボーダー幅 (px):</label>
+            <input type="number" id="global-border-width" value="2" min="0">
+        </div>
+        <div class="control-group">
+            <label for="global-border-color">ボーダー色:</label>
+            <input type="color" id="global-border-color" value="#000000">
+        </div>
+    </div>
+
+    <div id="image-list"></div>
+
+    <script>
+        const imageSelector = document.getElementById('image-selector');
+        const dropZone = document.getElementById('drop-zone');
+        const imageList = document.getElementById('image-list');
+
+        const pageBgColorInput = document.getElementById('page-bg-color');
+        const imgBgColorInput = document.getElementById('img-bg-color');
+        const itemBgColorInput = document.getElementById('item-bg-color');
+        const captionColorInput = document.getElementById('caption-color');
+        
+        const globalBorderStyle = document.getElementById('global-border-style');
+        const globalBorderWidth = document.getElementById('global-border-width');
+        const globalBorderColor = document.getElementById('global-border-color');
+
+        function applyGlobalStyles() {
+            // ページ背景色の適用
+            document.body.style.backgroundColor = pageBgColorInput.value;
+
+            const imgBgColor = imgBgColorInput.value;
+            const itemBgColor = itemBgColorInput.value;
+            const captionColor = captionColorInput.value;
+            const style = globalBorderStyle.value;
+            const width = globalBorderWidth.value;
+            const color = globalBorderColor.value;
+
+            // 各画像アイテムとキャプションにスタイルを適用
+            const imageItems = imageList.querySelectorAll('.image-item');
+            imageItems.forEach(item => {
+                const img = item.querySelector('img');
+                const captionDisplay = item.querySelector('.caption-display');
+                const captionInput = item.querySelector('.hidden-input');
+                
+                img.style.backgroundColor = imgBgColor;
+                img.style.borderStyle = style;
+                img.style.borderWidth = `${width}px`;
+                img.style.borderColor = color;
+                
+                item.style.backgroundColor = itemBgColor;
+                captionDisplay.style.color = captionColor;
+                captionInput.style.color = captionColor;
+            });
+        }
+        
+        // グローバル設定の変更を監視
+        pageBgColorInput.addEventListener('change', applyGlobalStyles);
+        imgBgColorInput.addEventListener('change', applyGlobalStyles);
+        itemBgColorInput.addEventListener('change', applyGlobalStyles);
+        captionColorInput.addEventListener('change', applyGlobalStyles);
+        globalBorderStyle.addEventListener('change', applyGlobalStyles);
+        globalBorderWidth.addEventListener('change', applyGlobalStyles);
+        globalBorderColor.addEventListener('change', applyGlobalStyles);
+
+        function createImageItem(file) {
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = file.name;
+
+                const captionDisplay = document.createElement('div');
+                captionDisplay.className = 'caption-display';
+                captionDisplay.textContent = file.name;
+
+                const captionInput = document.createElement('input');
+                captionInput.type = 'text';
+                captionInput.className = 'hidden-input';
+                captionInput.placeholder = 'キャプションを入力...';
+                captionInput.value = file.name;
+                captionInput.style.display = 'none';
+
+                captionDisplay.addEventListener('click', () => {
+                    captionInput.style.display = 'block';
+                    captionDisplay.style.display = 'none';
+                    captionInput.focus();
+                });
+
+                captionInput.addEventListener('blur', () => {
+                    captionDisplay.textContent = captionInput.value || captionInput.placeholder;
+                    captionDisplay.style.display = 'block';
+                    captionInput.style.display = 'none';
+                });
+                
+                captionInput.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        captionInput.blur();
+                    }
+                });
+
+                imageItem.appendChild(img);
+                imageItem.appendChild(captionDisplay);
+                imageItem.appendChild(captionInput);
+                imageList.appendChild(imageItem);
+                
+                applyGlobalStyles();
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        function handleFiles(files) {
+            imageList.innerHTML = '';
+            if (files && files.length > 0) {
+                for (const file of files) {
+                    createImageItem(file);
+                }
+            }
+        }
+
+        imageSelector.addEventListener('change', (event) => {
+            handleFiles(event.target.files);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        dropZone.addEventListener('click', () => {
+            imageSelector.click();
+        });
+
+        // ページロード時に初期スタイルを適用
+        applyGlobalStyles();
+    </script>
+</body>
+</html>
