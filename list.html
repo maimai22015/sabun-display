@@ -188,7 +188,6 @@
         const globalBorderColor = document.getElementById('global-border-color');
 
         function applyGlobalStyles() {
-            // ページ背景色の適用
             document.body.style.backgroundColor = pageBgColorInput.value;
 
             const imgBgColor = imgBgColorInput.value;
@@ -198,7 +197,6 @@
             const width = globalBorderWidth.value;
             const color = globalBorderColor.value;
 
-            // 各画像アイテムとキャプションにスタイルを適用
             const imageItems = imageList.querySelectorAll('.image-item');
             imageItems.forEach(item => {
                 const img = item.querySelector('img');
@@ -216,7 +214,6 @@
             });
         }
         
-        // グローバル設定の変更を監視
         pageBgColorInput.addEventListener('change', applyGlobalStyles);
         imgBgColorInput.addEventListener('change', applyGlobalStyles);
         itemBgColorInput.addEventListener('change', applyGlobalStyles);
@@ -277,7 +274,6 @@
         }
 
         function handleFiles(files) {
-            imageList.innerHTML = '';
             if (files && files.length > 0) {
                 for (const file of files) {
                     createImageItem(file);
@@ -313,7 +309,6 @@
             imageSelector.click();
         });
 
-        // ページロード時に初期スタイルを適用
         applyGlobalStyles();
     </script>
 </body>
